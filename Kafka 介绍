@@ -1,7 +1,25 @@
 kafka如何保证高吞吐率：
+（0）消息是被顺序的写入到磁盘的（顺序写磁盘比随机的写内存的速度还快，为什么？？）
 （1）单个Broker的吞吐率很高－－10w条消息／s，为什么这么高呢？？
 （2）Broker支持水平的扩展
 （3）每个Topic可以切分为多个partition，每个partition可以分布到不同的Broker上，从而实现随着Broker数量的增多，kafka的吞吐率可以不断的增加。
+Kafka 高性能吞吐揭秘－－－https://segmentfault.com/a/1190000003985468
+
+Kafka的broker是无状态的，每个Consumer所消费的消息的offset是由Consumer来各自进行单独维护的。
+
+Kafka如何保证高可靠：
+（1）partition的replication机制，但是这个会对吞吐率造成一定的影响
+
+“in sync” list的复制机制－－－吞吐率和可靠性之间的平衡
+复制机制即不是同步复制，也不是单纯的异步复制。
+事实上，同步复制要求“活着的”follower都复制完，这条消息才会被认为commit，这种复制方式极大的影响了吞吐率（高吞吐率是Kafka非常重要的一个特性）。
+而异步复制方式下，follower异步的从leader复制数据，数据只要被leader写入log就被认为已经commit，这种情况下如果follwer都落后于leader，而leader突然宕机，则会丢失数据。
+而Kafka的这种使用“in sync” list的方式则很好的均衡了确保数据不丢失以及吞吐率。
+follower可以批量的从leader复制数据，这样极大的提高复制性能（批量写磁盘），极大减少了follower与leader的差距（前文有说到，只要follower落后leader不太远，则被认为在“in sync” list里）。
+
+Leader的选举机制：
+需要进一步的学习体会。
+
 
 Kafka、Flume、Scribe对比：
 kafka的生产者采用push的方式来写入消息，消费者采用pull的方式来读取消息。
@@ -9,3 +27,25 @@ Flume和Scribe都是基于push的方式来写入和向后传递消息。
 Push方式很难平衡处理效率不一致的消费者，因为消息发送的速率是由Broker来决定的。
 Push方式的主要目标是尽可能以最快的速度将消息传递给下游消费者，而这会造成消费者来不及处理新的消息，典型的表现就是拒绝服务以及网络拥塞。
 Pull方式，消费者可以按照自己的处理能力来进行消息的处理。
+
+如何保证消息只被消费一次的语义：
+为了实现传统message queue消息只被消费一次的语义，Kafka保证保证同一个consumer group里只有一个consumer会消费一条消息。
+那kafka如何实现某条消息只会被某个consumer group中的consumer消费的呢？
+kafka使每一个consumer实例只会消费某一个或多个特定partition的数据，而某个partition的数据只会被某一个特定的consumer实例所消费
+
+
+Consumer的负载均衡：
+如果某consumer group中consumer数量少于partition数量，则至少有一个consumer会消费多个partition的数据，
+如果consumer的数量与partition数量相同，则正好一个consumer消费一个partition的数据，
+而如果consumer的数量多于partition的数量时，会有部分consumer无法消费该topic下任何一条消息。
+
+消息Deliver guarantee：
+Producer和Consumer之间的消息传输保证。
+
+
+
+
+
+
+
+
