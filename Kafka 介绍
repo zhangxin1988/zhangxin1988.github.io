@@ -1,3 +1,8 @@
+kafka如何保证高吞吐率：
+（1）单个Broker的吞吐率很高－－10w条消息／s，为什么这么高呢？？
+（2）Broker支持水平的扩展
+（3）每个Topic可以切分为多个partition，每个partition可以分布到不同的Broker上，从而实现随着Broker数量的增多，kafka的吞吐率可以不断的增加。
+
 Kafka、Flume、Scribe对比：
 kafka的生产者采用push的方式来写入消息，消费者采用pull的方式来读取消息。
 Flume和Scribe都是基于push的方式来写入和向后传递消息。
